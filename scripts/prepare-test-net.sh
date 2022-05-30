@@ -1,21 +1,27 @@
 #!/usr/bin/env bash
 set -e
 
+SUBKEY=subkey
+
 if [ "$#" -ne 1 ]; then
 	echo "Please provide the number of initial validators!"
 	exit 1
 fi
 
 generate_account_id() {
-	subkey inspect ${3:-} ${4:-} "$SECRET//$1//$2" | grep "Account ID" | awk '{ print $3 }'
+	$SUBKEY inspect ${3:-} ${4:-} "$SECRET//$1//$2" | grep "Account ID" | awk '{ print $3 }'
 }
 
 generate_address() {
-	subkey inspect ${3:-} ${4:-} "$SECRET//$1//$2" | grep "SS58 Address" | awk '{ print $3 }'
+	$SUBKEY inspect ${3:-} ${4:-} "$SECRET//$1//$2" | grep "SS58 Address" | awk '{ print $3 }'
 }
 
 generate_public_key() {
-	subkey inspect ${3:-} ${4:-} "$SECRET//$1//$2" | grep "Public" | awk '{ print $4 }'
+  $SUBKEY inspect ${3:-} ${4:-} "$SECRET//$1//$2" | grep "Public key (hex)" | awk '{ print $4 }'
+}
+
+generate_secret_seed() {
+	$SUBKEY inspect ${3:-} ${4:-} "$SECRET//$1//$2" | grep "Secret seed" | awk '{ print $3 }'
 }
 
 generate_address_and_public_key() {
@@ -37,9 +43,26 @@ generate_address_and_account_id() {
 	printf "//$ADDRESS\nhex![\"${ACCOUNT#'0x'}\"].$INTO(),"
 }
 
+get_json() {
+  JSON="{"
+  JSON+='  "jsonrpc":"2.0",\n'
+  JSON+='  "id":1,\n'
+  JSON+='  "method":"author_insertKey",\n'
+  JSON+='  "params": [\n'
+  JSON+="    \"$1\",\n"
+  JSON+="    \"$2\",\n"
+  JSON+="    \"$3\"\n"
+  JSON+="  ]\n"
+  JSON+="}\n\n"
+
+  printf "$JSON"
+}
+
 V_NUM=$1
 
 AUTHORITIES=""
+
+SECRETS=""
 
 for i in $(seq 1 $V_NUM); do
 	AUTHORITIES+="(\n"
@@ -53,6 +76,16 @@ for i in $(seq 1 $V_NUM); do
 	AUTHORITIES+="$(generate_address_and_account_id $i authority_discovery '--scheme sr25519' true)\n"
 	AUTHORITIES+="$(generate_address_and_public_key $i beefy '--scheme ecdsa' true)\n"
 	AUTHORITIES+="),\n"
+
+  mkdir -p ../keys/relaychain/v$i
+  echo "$(get_json "babe" "$(generate_secret_seed $i babe '--scheme sr25519')" "$(generate_public_key $i babe '--scheme sr25519')")" > ../keys/relaychain/v$i/babe.json
+  echo "$(get_json "gran" "$(generate_secret_seed $i grandpa '--scheme ed25519')" "$(generate_public_key $i grandpa '--scheme ed25519')")" > ../keys/relaychain/v$i/grandpa.json
+  echo "$(get_json "imon" "$(generate_secret_seed $i im_online '--scheme sr25519')" "$(generate_public_key $i im_online '--scheme sr25519')")" > ../keys/relaychain/v$i/im_online.json
+  echo "$(get_json "para" "$(generate_secret_seed $i para_validator '--scheme sr25519')" "$(generate_public_key $i para_validator '--scheme sr25519')")" > ../keys/relaychain/v$i/para_validator.json
+  echo "$(get_json "asgn" "$(generate_secret_seed $i para_assignment '--scheme sr25519')" "$(generate_public_key $i para_assignment '--scheme sr25519')")" > ../keys/relaychain/v$i/para_assignment.json
+  echo "$(get_json "audi" "$(generate_secret_seed $i authority_discovery '--scheme sr25519')" "$(generate_public_key $i authority_discovery '--scheme sr25519')")" > ../keys/relaychain/v$i/authority_discovery.json
+  echo "$(get_json "beef" "$(generate_secret_seed $i beefy '--scheme ecdsa')" "$(generate_public_key $i beefy '--scheme ecdsa')")" > ../keys/relaychain/v$i/beefy.json
 done
 
 printf "$AUTHORITIES"
+
