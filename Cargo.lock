@@ -11988,6 +11988,7 @@ dependencies = [
 name = "xcm-builder"
 version = "0.9.17"
 dependencies = [
+ "env_logger 0.7.1",
  "frame-support",
  "frame-system",
  "log",

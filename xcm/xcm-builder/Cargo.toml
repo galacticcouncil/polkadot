@@ -27,6 +27,9 @@ sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-
 pallet-balances = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.17" }
 pallet-xcm = { path = "../pallet-xcm" }
 polkadot-runtime-parachains = { path = "../../runtime/parachains" }
+
+env_logger = "*"
+
 [features]
 default = ["std"]
 runtime-benchmarks = []

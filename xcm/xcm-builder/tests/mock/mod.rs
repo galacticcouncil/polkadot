@@ -154,8 +154,11 @@ parameter_types! {
 	pub const KusamaForStatemine: (MultiAssetFilter, MultiLocation) =
 		(MultiAssetFilter::Wild(WildMultiAsset::AllOf { id: Concrete(MultiLocation::here()), fun: WildFungible }), X1(Parachain(1000)).into());
 	pub const MaxInstructions: u32 = 100;
+	pub const ParachainReserve: (MultiAssetFilter, MultiLocation) =
+		(MultiAssetFilter::Wild(WildMultiAsset::AllOf { id: Concrete(Parachain(2000).into()), fun: WildFungible }), X1(Parachain(2000)).into());
 }
 pub type TrustedTeleporters = (xcm_builder::Case<KusamaForStatemine>,);
+pub type TrustedReserves = (xcm_builder::Case<ParachainReserve>,);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
@@ -163,7 +166,7 @@ impl xcm_executor::Config for XcmConfig {
 	type XcmSender = TestSendXcm;
 	type AssetTransactor = LocalAssetTransactor;
 	type OriginConverter = LocalOriginConverter;
-	type IsReserve = ();
+	type IsReserve = TrustedReserves;
 	type IsTeleporter = TrustedTeleporters;
 	type LocationInverter = LocationInverter<Ancestry>;
 	type Barrier = Barrier;

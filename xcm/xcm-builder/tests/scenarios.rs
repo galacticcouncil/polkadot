@@ -76,7 +76,6 @@ fn withdraw_and_deposit_works() {
 /// Asserts that the balances are updated correctly and the expected XCM is sent.
 #[test]
 fn query_holding_works() {
-	use xcm::opaque::latest::prelude::*;
 	let para_acc: AccountId = ParaId::from(PARA_ID).into_account();
 	let balances = vec![(ALICE, INITIAL_BALANCE), (para_acc.clone(), INITIAL_BALANCE)];
 	kusama_like_with_balances(balances).execute_with(|| {
@@ -165,7 +164,6 @@ fn query_holding_works() {
 /// Asserts that the balances are updated accordingly and the correct XCM is sent.
 #[test]
 fn teleport_to_statemine_works() {
-	use xcm::opaque::latest::prelude::*;
 	let para_acc: AccountId = ParaId::from(PARA_ID).into_account();
 	let balances = vec![(ALICE, INITIAL_BALANCE), (para_acc.clone(), INITIAL_BALANCE)];
 	kusama_like_with_balances(balances).execute_with(|| {
@@ -255,7 +253,6 @@ fn teleport_to_statemine_works() {
 /// Asserts that the balances are updated accordingly and the correct XCM is sent.
 #[test]
 fn reserve_based_transfer_works() {
-	use xcm::opaque::latest::prelude::*;
 	let para_acc: AccountId = ParaId::from(PARA_ID).into_account();
 	let balances = vec![(ALICE, INITIAL_BALANCE), (para_acc.clone(), INITIAL_BALANCE)];
 	kusama_like_with_balances(balances).execute_with(|| {
@@ -296,5 +293,47 @@ fn reserve_based_transfer_works() {
 					.collect())
 			)]
 		);
+	});
+}
+
+/// Scenario:
+/// A parachain sends an XCM with an unknown asset to Kusama.
+/// We want those funds to end up in the asset trap.
+#[test]
+fn unknown_funds_are_trapped() {
+	use xcm::VersionedMultiAssets;
+	use sp_runtime::traits::{BlakeTwo256, Hash};
+	use crate::mock::XcmPallet;
+
+	env_logger::init();
+
+	let para_acc: AccountId = ParaId::from(PARA_ID).into_account();
+	let balances = vec![(ALICE, INITIAL_BALANCE), (para_acc.clone(), INITIAL_BALANCE)];
+	kusama_like_with_balances(balances).execute_with(|| {
+		let amount = REGISTER_AMOUNT;
+		let weight = 4 * BaseXcmWeight::get();
+		let asset: MultiAsset = (Parachain(PARA_ID), amount).into();
+		let assets: MultiAssets = vec![asset.clone()].into();
+		let origin = Parachain(PARA_ID).into();
+		let r = XcmExecutor::<XcmConfig>::execute_xcm(
+			origin.clone(),
+			Xcm(vec![
+				ReserveAssetDeposited(assets.clone()),
+				ClearOrigin,
+				BuyExecution {
+					fees: asset, weight_limit: Limited(weight),
+				},
+				DepositAsset {
+					assets: All.into(),
+					max_assets: 1,
+					beneficiary: Here.into(),
+				},
+			]),
+			weight,
+		);
+		assert_eq!(r, Outcome::Incomplete(4 * BaseXcmWeight::get(), XcmError::AssetNotFound));
+		let versioned = VersionedMultiAssets::from(assets);
+		let hash = BlakeTwo256::hash_of(&(&origin, &versioned));
+		assert_eq!(XcmPallet::asset_trap(hash), 1);
 	});
 }
