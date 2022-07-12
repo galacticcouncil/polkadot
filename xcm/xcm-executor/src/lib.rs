@@ -390,10 +390,24 @@ impl<Config: config::Config> XcmExecutor<Config> {
 			},
 			DepositAsset { assets, max_assets, beneficiary } => {
 				let deposited = self.holding.limited_saturating_take(assets, max_assets as usize);
+				let mut failed = false;
+				let mut maybe_error = None;
 				for asset in deposited.into_assets_iter() {
-					Config::AssetTransactor::deposit_asset(&asset, &beneficiary)?;
+					if !failed {
+						let _ = Config::AssetTransactor::deposit_asset(&asset, &beneficiary).map_err(|e| {
+							failed = true;
+							maybe_error = Some(e);
+						});
+					}
+					if failed {
+						self.holding.subsume_assets(asset.into());
+					}
 				}
-				Ok(())
+				if let Some(err) = maybe_error {
+					Err(err)
+				} else {
+					Ok(())
+				}
 			},
 			DepositReserveAsset { assets, max_assets, dest, xcm } => {
 				let deposited = self.holding.limited_saturating_take(assets, max_assets as usize);
