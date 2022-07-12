@@ -20,6 +20,7 @@ use mock::{
 	kusama_like_with_balances, AccountId, Balance, Balances, BaseXcmWeight, XcmConfig, CENTS,
 };
 use polkadot_parachain::primitives::Id as ParaId;
+use pretty_assertions::assert_eq;
 use sp_runtime::traits::AccountIdConversion;
 use xcm::latest::prelude::*;
 use xcm_executor::XcmExecutor;
@@ -62,7 +63,9 @@ fn withdraw_and_deposit_works() {
 		assert_eq!(r, Outcome::Complete(weight));
 		let other_para_acc: AccountId = ParaId::from(other_para_id).into_account();
 		assert_eq!(Balances::free_balance(para_acc), INITIAL_BALANCE - amount);
-		assert_eq!(Balances::free_balance(other_para_acc), amount);
+		let fees = 3;
+		let amount_minus_fees = amount - fees;
+		assert_eq!(Balances::free_balance(other_para_acc), amount_minus_fees);
 	});
 }
 
@@ -138,7 +141,9 @@ fn query_holding_works() {
 		);
 		assert_eq!(r, Outcome::Complete(weight));
 		let other_para_acc: AccountId = ParaId::from(other_para_id).into_account();
-		assert_eq!(Balances::free_balance(other_para_acc), amount);
+		let fees = 4;
+		let amount_minus_fees = amount - fees;
+		assert_eq!(Balances::free_balance(other_para_acc), amount_minus_fees);
 		assert_eq!(Balances::free_balance(para_acc), INITIAL_BALANCE - 2 * amount);
 		assert_eq!(
 			mock::sent_xcm(),
@@ -195,11 +200,13 @@ fn teleport_to_statemine_works() {
 			weight,
 		);
 		assert_eq!(r, Outcome::Complete(weight));
+		let fees = 3;
+		let amount_minus_fees = amount - fees;
 		assert_eq!(
 			mock::sent_xcm(),
 			vec![(
 				Parachain(other_para_id).into(),
-				Xcm(vec![ReceiveTeleportedAsset((Parent, amount).into()), ClearOrigin,]
+				Xcm(vec![ReceiveTeleportedAsset((Parent, amount_minus_fees).into()), ClearOrigin,]
 					.into_iter()
 					.chain(teleport_effects.clone().into_iter())
 					.collect())
@@ -228,14 +235,14 @@ fn teleport_to_statemine_works() {
 			vec![
 				(
 					Parachain(other_para_id).into(),
-					Xcm(vec![ReceiveTeleportedAsset((Parent, amount).into()), ClearOrigin,]
+					Xcm(vec![ReceiveTeleportedAsset((Parent, amount_minus_fees).into()), ClearOrigin,]
 						.into_iter()
 						.chain(teleport_effects.clone().into_iter())
 						.collect()),
 				),
 				(
 					Parachain(statemine_id).into(),
-					Xcm(vec![ReceiveTeleportedAsset((Parent, amount).into()), ClearOrigin,]
+					Xcm(vec![ReceiveTeleportedAsset((Parent, amount_minus_fees).into()), ClearOrigin,]
 						.into_iter()
 						.chain(teleport_effects.clone().into_iter())
 						.collect()),
@@ -283,11 +290,13 @@ fn reserve_based_transfer_works() {
 		);
 		assert_eq!(r, Outcome::Complete(weight));
 		assert_eq!(Balances::free_balance(para_acc), INITIAL_BALANCE - amount);
+		let fees = 3;
+		let amount_minus_fees = amount - fees;
 		assert_eq!(
 			mock::sent_xcm(),
 			vec![(
 				Parachain(other_para_id).into(),
-				Xcm(vec![ReserveAssetDeposited((Parent, amount).into()), ClearOrigin,]
+				Xcm(vec![ReserveAssetDeposited((Parent, amount_minus_fees).into()), ClearOrigin,]
 					.into_iter()
 					.chain(transfer_effects.into_iter())
 					.collect())
@@ -331,7 +340,7 @@ fn unknown_funds_are_trapped() {
 			]),
 			weight,
 		);
-		assert_eq!(r, Outcome::Incomplete(4 * BaseXcmWeight::get(), XcmError::AssetNotFound));
+		assert_eq!(r, Outcome::Incomplete(3 * BaseXcmWeight::get(), XcmError::TooExpensive));
 		let versioned = VersionedMultiAssets::from(assets);
 		let hash = BlakeTwo256::hash_of(&(&origin, &versioned));
 		assert_eq!(XcmPallet::asset_trap(hash), 1);
