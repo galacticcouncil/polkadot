@@ -158,9 +158,18 @@ parameter_types! {
 	pub const MaxInstructions: u32 = 100;
 	pub const ParachainReserve: (MultiAssetFilter, MultiLocation) =
 		(MultiAssetFilter::Wild(WildMultiAsset::AllOf { id: Concrete(Parachain(2000).into()), fun: WildFungible }), X1(Parachain(2000)).into());
+	pub const StatemineAssetOneReserve: (MultiAssetFilter, MultiLocation) =
+		(MultiAssetFilter::Wild(WildMultiAsset::AllOf { id: Concrete(X2(Parachain(1000), GeneralIndex(1)).into()), fun: WildFungible }), X1(Parachain(1000)).into());
+	pub const StatemineAssetTwoReserve: (MultiAssetFilter, MultiLocation) =
+		(MultiAssetFilter::Wild(WildMultiAsset::AllOf { id: Concrete(X2(Parachain(1000), GeneralIndex(2)).into()), fun: WildFungible }), X1(Parachain(1000)).into());
 }
 pub type TrustedTeleporters = (xcm_builder::Case<KusamaForStatemine>,);
-pub type TrustedReserves = (xcm_builder::Case<ParachainReserve>,);
+pub type TrustedReserves = (
+	xcm_builder::Case<ParachainReserve>,
+	xcm_builder::Case<StatemineAssetOneReserve>,
+	xcm_builder::Case<StatemineAssetTwoReserve>,
+	xcm_builder::Case<KusamaForStatemine>,
+);
 
 pub struct XcmConfig;
 impl xcm_executor::Config for XcmConfig {
