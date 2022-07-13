@@ -307,7 +307,8 @@ fn reserve_based_transfer_works() {
 
 /// Scenario:
 /// A parachain sends an XCM with an unknown asset to Kusama.
-/// Asserts that those funds end up in the asset trap.
+///
+/// Asserts that asset ends up in the asset trap.
 #[test]
 fn unknown_tokens_are_trapped_on_failed_buy_execution() {
 	use xcm::VersionedMultiAssets;
@@ -348,8 +349,9 @@ fn unknown_tokens_are_trapped_on_failed_buy_execution() {
 }
 
 /// Scenario:
-/// Statemine sends an XCM with KSM and an unknown asset to Kusama.
-/// Asserts that those funds end up in the asset trap.
+/// Statemine sends an XCM with KSM and two unknown assets to Kusama.
+///
+/// Asserts that those unknown tokens end up in the asset trap.
 #[test]
 fn unknown_tokens_are_trapped_on_failed_deposit() {
 	use xcm::VersionedMultiAssets;
@@ -381,6 +383,54 @@ fn unknown_tokens_are_trapped_on_failed_deposit() {
 					assets: All.into(),
 					max_assets: 3,
 					beneficiary: Parachain(statemine_id).into(),
+				},
+			]),
+			weight,
+		);
+		assert_eq!(r, Outcome::Incomplete(4 * BaseXcmWeight::get(), XcmError::AssetNotFound));
+		let expected_assets: MultiAssets = vec![para_asset.clone(), other_para_asset.clone()].into();
+		let versioned = VersionedMultiAssets::from(expected_assets);
+		let hash = BlakeTwo256::hash_of(&(&origin, &versioned));
+		assert_eq!(XcmPallet::asset_trap(hash), 1);
+	});
+}
+
+/// Scenario:
+/// Statemine sends an XCM with KSM and two unknown assets to Kusama.
+///
+/// Asserts that those funds end up in the asset trap.
+#[test]
+fn unknown_tokens_are_trapped_on_failed_reserve_deposit() {
+	use xcm::VersionedMultiAssets;
+	use sp_runtime::traits::{BlakeTwo256, Hash};
+	use crate::mock::XcmPallet;
+
+	env_logger::init();
+
+	let statemine_id = 1000;
+	let para_acc: AccountId = ParaId::from(statemine_id).into_account();
+	let balances = vec![(ALICE, INITIAL_BALANCE), (para_acc.clone(), INITIAL_BALANCE)];
+	kusama_like_with_balances(balances).execute_with(|| {
+		let amount = REGISTER_AMOUNT;
+		let weight = 4 * BaseXcmWeight::get();
+		let para_asset: MultiAsset = (X2(Parachain(statemine_id), GeneralIndex(1)), amount).into();
+		let other_para_asset: MultiAsset = (X2(Parachain(statemine_id), GeneralIndex(2)), amount).into();
+		let ksm: MultiAsset = (Here, amount).into();
+		let assets: MultiAssets = vec![ksm.clone(), para_asset.clone(), other_para_asset.clone()].into();
+		let origin = Parachain(statemine_id).into();
+		let r = XcmExecutor::<XcmConfig>::execute_xcm(
+			origin.clone(),
+			Xcm(vec![
+				ReserveAssetDeposited(assets.clone()),
+				ClearOrigin,
+				BuyExecution {
+					fees: ksm, weight_limit: Limited(weight),
+				},
+				DepositReserveAsset {
+					assets: All.into(),
+					max_assets: 3,
+					dest: Parachain(statemine_id).into(),
+					xcm: Xcm(vec![]),
 				},
 			]),
 			weight,
