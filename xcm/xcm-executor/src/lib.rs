@@ -390,16 +390,15 @@ impl<Config: config::Config> XcmExecutor<Config> {
 			},
 			DepositAsset { assets, max_assets, beneficiary } => {
 				let deposited = self.holding.limited_saturating_take(assets, max_assets as usize);
-				let mut failed = false;
 				let mut maybe_error = None;
 				for asset in deposited.into_assets_iter() {
-					if !failed {
+					if maybe_error.is_none() {
 						let _ = Config::AssetTransactor::deposit_asset(&asset, &beneficiary).map_err(|e| {
-							failed = true;
 							maybe_error = Some(e);
 						});
 					}
-					if failed {
+					// We assume a failed `deposit_asset` does not consume the asset and thus return it to holding.
+					if maybe_error.is_some() {
 						self.holding.subsume_assets(asset.into());
 					}
 				}
@@ -411,8 +410,20 @@ impl<Config: config::Config> XcmExecutor<Config> {
 			},
 			DepositReserveAsset { assets, max_assets, dest, xcm } => {
 				let deposited = self.holding.limited_saturating_take(assets, max_assets as usize);
+				let mut maybe_error = None;
 				for asset in deposited.assets_iter() {
-					Config::AssetTransactor::deposit_asset(&asset, &dest)?;
+					if maybe_error.is_none() {
+						let _ = Config::AssetTransactor::deposit_asset(&asset, &dest).map_err(|e| {
+							maybe_error = Some(e);
+						});
+					}
+					// We assume a failed `deposit_asset` does not consume the asset and thus return it to holding.
+					if maybe_error.is_some() {
+						self.holding.subsume_assets(asset.into());
+					}
+				}
+				if let Some(err) = maybe_error {
+					return Err(err)
 				}
 				// Note that we pass `None` as `maybe_failed_bin` and drop any assets which cannot
 				// be reanchored  because we have already called `deposit_asset` on all assets.
