@@ -362,6 +362,9 @@ fn unknown_tokens_are_trapped_on_failed_buy_execution() {
 /// Scenario:
 /// Statemine sends an XCM with KSM and two unknown assets to Kusama.
 ///
+/// Note: This is a bit of a convoluted way of triggering the error in `deposit_asset` and does not
+/// represent a realistic scenario that would be encountered in practice.
+///
 /// Asserts that those unknown tokens end up in the asset trap.
 #[test]
 fn unknown_tokens_are_trapped_on_failed_deposit() {
@@ -402,6 +405,9 @@ fn unknown_tokens_are_trapped_on_failed_deposit() {
 
 /// Scenario:
 /// Statemine sends an XCM with KSM and two unknown assets to Kusama.
+///
+/// Note: This is a bit of a convoluted way of triggering the error in `deposit_asset` and does not
+/// represent a realistic scenario that would be encountered in practice.
 ///
 /// Asserts that those funds end up in the asset trap.
 #[test]
