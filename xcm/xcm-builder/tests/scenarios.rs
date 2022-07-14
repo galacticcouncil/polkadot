@@ -333,8 +333,6 @@ fn reserve_based_transfer_works() {
 /// Asserts that asset ends up in the asset trap.
 #[test]
 fn unknown_tokens_are_trapped_on_failed_buy_execution() {
-	env_logger::init();
-
 	let para_acc: AccountId = ParaId::from(PARA_ID).into_account();
 	let balances = vec![(ALICE, INITIAL_BALANCE), (para_acc.clone(), INITIAL_BALANCE)];
 	kusama_like_with_balances(balances).execute_with(|| {
@@ -368,8 +366,6 @@ fn unknown_tokens_are_trapped_on_failed_buy_execution() {
 /// Asserts that those unknown tokens end up in the asset trap.
 #[test]
 fn unknown_tokens_are_trapped_on_failed_deposit() {
-	env_logger::init();
-
 	let statemine_id = 1000;
 	let para_acc: AccountId = ParaId::from(statemine_id).into_account();
 	let balances = vec![(ALICE, INITIAL_BALANCE), (para_acc.clone(), INITIAL_BALANCE)];
@@ -412,8 +408,6 @@ fn unknown_tokens_are_trapped_on_failed_deposit() {
 /// Asserts that those funds end up in the asset trap.
 #[test]
 fn unknown_tokens_are_trapped_on_failed_reserve_deposit() {
-	env_logger::init();
-
 	let statemine_id = 1000;
 	let para_acc: AccountId = ParaId::from(statemine_id).into_account();
 	let balances = vec![(ALICE, INITIAL_BALANCE), (para_acc.clone(), INITIAL_BALANCE)];
