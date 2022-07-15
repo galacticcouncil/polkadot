@@ -13669,6 +13669,7 @@ dependencies = [
  "parity-scale-codec",
  "polkadot-parachain",
  "polkadot-runtime-parachains",
+ "pretty_assertions",
  "scale-info",
  "sp-arithmetic",
  "sp-core",
