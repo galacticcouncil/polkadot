@@ -142,7 +142,7 @@ type LocalOriginConverter = (
 parameter_types! {
 	// Make sure the combination of base weight * KsmPerSecond is more than WEIGHT_PER_SECOND
 	// (1_000_000_000_000) so the fee is greater than 0.
-	pub const BaseXcmWeight: Weight = 1_000_000_000;
+	pub const BaseXcmWeight: u64 = 1_000_000_000;
 	pub KsmPerSecond: (AssetId, u128) = (KsmLocation::get().into(), 1_000);
 }
 

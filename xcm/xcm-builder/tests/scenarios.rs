@@ -16,7 +16,7 @@
 
 mod mock;
 
-use frame_support::{pallet_prelude::Weight, weights::constants::WEIGHT_PER_SECOND};
+use frame_support::{weights::constants::WEIGHT_PER_SECOND};
 use mock::{
 	kusama_like_with_balances, AccountId, Balance, Balances, BaseXcmWeight, KsmPerSecond, System,
 	XcmConfig, XcmPallet, CENTS,
@@ -39,9 +39,9 @@ fn buy_execution<C>() -> Instruction<C> {
 }
 
 // Calculate fees based on the weight.
-fn fees(weight: Weight) -> Balance {
+fn fees(weight: u64) -> Balance {
 	let (_, rate) = KsmPerSecond::get();
-	let fees = weight as u128 * rate / (WEIGHT_PER_SECOND as u128);
+	let fees = weight as u128 * rate / (WEIGHT_PER_SECOND.ref_time() as u128);
 	assert!(fees > 0);
 	fees
 }
